@@ -19,6 +19,7 @@ void displayRecords();
 void searchRecord();
 void updateRecord();
 void deleteRecord();
+int studentExists(int id);
 
 int main() {
     int choice;
@@ -51,18 +52,45 @@ int main() {
     return 0;
 }
 
-/* Create File */
+/* Create File (SAFE: does not overwrite) */
 void createFile() {
-    FILE *fp = fopen(FILE_NAME, "wb");
+    FILE *fp = fopen(FILE_NAME, "rb");
+
+    if(fp != NULL) {
+        printf("File already exists! No overwrite.\n");
+        fclose(fp);
+        return;
+    }
+
+    fp = fopen(FILE_NAME, "wb");
     if(fp == NULL) {
         printf("Error creating file!\n");
         return;
     }
+
     fclose(fp);
     printf("File created successfully!\n");
 }
 
-/* Add Record */
+/* Check if student already exists by ID */
+int studentExists(int id) {
+    FILE *fp = fopen(FILE_NAME, "rb");
+    struct Student s;
+
+    if(fp == NULL) return 0;
+
+    while(fread(&s, sizeof(struct Student), 1, fp)) {
+        if(s.studentID == id) {
+            fclose(fp);
+            return 1; // exists
+        }
+    }
+
+    fclose(fp);
+    return 0;
+}
+
+/* Add Record (NO DUPLICATES) */
 void addRecord() {
     FILE *fp = fopen(FILE_NAME, "ab");
     struct Student s;
@@ -74,6 +102,13 @@ void addRecord() {
 
     printf("Enter Student ID: ");
     scanf("%d", &s.studentID);
+
+    /* Check duplicate */
+    if(studentExists(s.studentID)) {
+        printf("Student with this ID already exists! Cannot add duplicate.\n");
+        fclose(fp);
+        return;
+    }
 
     printf("Enter Student Name: ");
     scanf(" %[^\n]", s.studentName);
@@ -130,8 +165,8 @@ void searchRecord() {
     while(fread(&s, sizeof(struct Student), 1, fp)) {
         if(strcmp(s.studentName, name) == 0) {
             printf("\nRecord Found!\n");
-            printf("ID: %d\nEmail: %s\nCourse: %s\nGrade: %s\n",
-                   s.studentID, s.email, s.courseID, s.grade);
+            printf("ID: %d\nName: %s\nEmail: %s\nCourse: %s\nGrade: %s\n",
+                   s.studentID, s.studentName, s.email, s.courseID, s.grade);
             found = 1;
             break;
         }
@@ -160,6 +195,13 @@ void updateRecord() {
 
     while(fread(&s, sizeof(struct Student), 1, fp)) {
         if(strcmp(s.studentName, name) == 0) {
+
+            printf("Enter new Email: ");
+            scanf(" %[^\n]", s.email);
+
+            printf("Enter new Course ID: ");
+            scanf(" %[^\n]", s.courseID);
+
             printf("Enter new Grade: ");
             scanf(" %[^\n]", s.grade);
 
